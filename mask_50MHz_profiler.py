@@ -22,6 +22,23 @@ import matplotlib.pyplot as plt
 # Path to profiler data files
 data = "/d1/dadriaan/paper/20141008_Christopher_Williams/netcdf"
 
+# TEST 1: z > 4 km && valid dbz
+t1 = True
+t1z = 4000.0
+
+# TEST 2: abs(dopvel) > 1.0 m/s
+t2 = False
+t2v = 10.0
+
+# TEST 3: dbz > 20.0 dbz
+t3 = False
+t3r = 20.0
+
+# TEST 4: abs(omega) > 1.0 m/s and Z < 8 km
+t4 = False
+t4v = 5.0
+t4z = 8000.0
+
 #################################################################################
 
 # Get a list of the files available
@@ -48,10 +65,12 @@ mn = mf.variables['prof_time_hour'][:]
 
 # Read in 50 MHz data from all files
 omean = mf.variables['prof_dar50_Omega_mean'][:]
-ouncert = mf.variables['prof_dar50_Omega_mean_uncert'][:]
-osnr = mf.variables['prof_dar50_Omega_snr'][:]
-owid = mf.variables['prof_dar50_Omega_wid'][:]
-ozdb = mf.variables['prof_dar50_Omega_zdb'][:]
+zmean = mf.variables['prof_dar50_Zonal_mean'][:]
+mmean = mf.variables['prof_dar50_Merid_mean'][:]
 
+# Read in 920 MHz data from all files
+raindbz = mf.variables['prof_dar920_vert_zdb'][:]
+
+# Apply the bad data flag to turn off data we don't want
 omean2 = np.ma.masked_values(omean,bf)
 
