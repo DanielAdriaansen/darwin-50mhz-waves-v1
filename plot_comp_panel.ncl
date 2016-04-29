@@ -42,7 +42,7 @@ windcomp = "w"
 ; Break or monsoon?
 bm = "break"
 
-; What version of the data? (raw, mask, data, prime)?
+; What version of the data? (raw, data, prime)?
 ; raw = raw data
 ; data = raw data with precip mask applied
 ; prime = perturbation wind
@@ -80,4 +80,14 @@ ListSetType(fin,"cat")
 bf = fin[0]->bf
 pagl = fin[0]->pagl
 unix_time = fin[:]->unix_time
+if vers.eq."raw" then
+  w = fin[:]->omean
+  u = fin[:]->umean
+  v = fin[:]->vmean
+else
+  w = fin[:]->omegpass1
+  u = fin[:]->zonalpass1
+  v = fin[:]->meridpass1
+end if
+
 
