@@ -13,8 +13,11 @@
 
 ;############################### User Config #####################################;
 
-; Path to netCDF files
+; Path to input netCDF files
 ncpath = "/d1/dadriaan/paper/data/raw"
+
+; Path to output netCDF files
+ncout = "/d1/dadriaan/paper/data/masked_offset"
 
 ; Which tests would you like to employ to filter te 920 data for precip?
 ; TEST 1: z > 4 km && valid dbz
@@ -71,6 +74,7 @@ print("")
 
 ; NCL Libraries
 load "/home/dadriaan/cvs/pat/dadriaan/scripts/ncl/load_ncl_libs.ncl"
+load "/home/dadriaan/cvs/pat/dadriaan/scripts/ncl/ncl_usr_funcs.ncl"
 
 ; Open the netcdf files
 allfiles = systemfunc("ls "+ncpath+"/*2006*.nc")
@@ -278,3 +282,105 @@ end do
 ; omegpass1, meridpass1, zonalpass1, rainpass1
 ; mask_u, mask_w, mask_v, mask_dbz
 ; omean, zmean, mmean, raindbz
+; To keep simplicity, we will write out data in the same way it came in- days at a time starting at 00Z
+
+; Determine number of output files to write
+nof = dimsizes(allfiles)
+do f=0,nof-1,1
+
+  ; Determine the beg and end to write data for
+  beg_ind = f*1440
+  end_ind = beg_ind+1439
+  ntimes = (end_ind-beg_ind)+1
+  ;print("NUM TIMES = "+ntimes)
+
+  ; Set the filename
+  s1 = str_split(allfiles(f),"/")
+  s2 = s1(dimsizes(s1)-1)
+  fout = ncout+"/mask."+s2
+
+  ; Print for user
+  print("WRITING FILE: "+fout)
+  print("")
+
+  ; Prepare for writing
+  system("/bin/rm -f "+fout)           ; Remove any existing file with the same output name
+  fo = addfile(fout,"c")               ; Create the netcdf file
+  setfileoption(fo,"DefineMode",True)  ; Enter define mode
+  fAtt = True                          ; Set file attributes to True
+  fAtt@title = "Precipitation masked 50 MHz and 920 MHz data"        ; Set the title of the file
+  fileattdef(fo,fAtt)                  ; Add the attributes to the output file
+
+  ; Output file dimensions
+  dimNames = (/"time","height","single_value"/)
+  dimSizes = (/ntimes,numhgts,1/)
+  dimUnlim = (/False,False,False/)
+
+  ; Define output file dimensions
+  filedimdef(fo,dimNames,dimSizes,dimUnlim)
+  
+  ; Define output variables
+  filevardef(fo,"unix_time",typeof(utimes),(/"time"/))
+  filevardef(fo,"bf",typeof(bf),(/"single_value"/))
+  filevardef(fo,"palt",typeof(palt),(/"single_value"/))
+  filevardef(fo,"plat",typeof(plat),(/"single_value"/))
+  filevardef(fo,"plon",typeof(plon),(/"single_value"/))
+  filevardef(fo,"pagl",typeof(pagl),(/"height"/))
+  filevardef(fo,"omean",typeof(omean),(/"time","height"/))
+  filevardef(fo,"zmean",typeof(zmean),(/"time","height"/))
+  filevardef(fo,"mmean",typeof(mmean),(/"time","height"/))
+  filevardef(fo,"raindbz",typeof(raindbz),(/"time","height"/))
+  filevardef(fo,"mask_w",typeof(mask_w),(/"time","height"/))
+  filevardef(fo,"mask_u",typeof(mask_u),(/"time","height"/))
+  filevardef(fo,"mask_v",typeof(mask_v),(/"time","height"/))
+  filevardef(fo,"mask_dbz",typeof(mask_dbz),(/"time","height"/))
+  filevardef(fo,"precipflag",typeof(precipflag),(/"time"/))
+  filevardef(fo,"omegpass1",typeof(omegpass1),(/"time","height"/))
+  filevardef(fo,"zonalpass1",typeof(zonalpass1),(/"time","height"/))
+  filevardef(fo,"meridpass1",typeof(meridpass1),(/"time","height"/))
+  filevardef(fo,"rainpass1",typeof(rainpass1),(/"time","height"/))
+  
+  ; Define output variable attributes
+  filevarattdef(fo,"unix_time",utimes)
+  filevarattdef(fo,"bf",bf)
+  filevarattdef(fo,"palt",palt)
+  filevarattdef(fo,"plat",plat)
+  filevarattdef(fo,"plon",plon)
+  filevarattdef(fo,"pagl",pagl)
+  filevarattdef(fo,"omean",omean)
+  filevarattdef(fo,"zmean",zmean)
+  filevarattdef(fo,"mmean",mmean)
+  filevarattdef(fo,"raindbz",raindbz)
+  filevarattdef(fo,"mask_w",mask_w)
+  filevarattdef(fo,"mask_u",mask_u)
+  filevarattdef(fo,"mask_v",mask_v)
+  filevarattdef(fo,"mask_dbz",mask_dbz)
+  filevarattdef(fo,"omegpass1",omegpass1)
+  filevarattdef(fo,"zonalpass1",zonalpass1)
+  filevarattdef(fo,"meridpass1",meridpass1)
+  filevarattdef(fo,"rainpass1",rainpass1)
+  
+  ; Exit define mode
+  setfileoption(fo,"DefineMode",False)
+  
+  ; Write data to the file
+  fo->unix_time = (/utimes(beg_ind:end_ind)/)
+  fo->bf = (/bf/)
+  fo->palt = (/palt/)
+  fo->plat = (/plat/)
+  fo->plon = (/plon/)
+  fo->pagl = (/pagl/)
+  fo->omean = (/omean(beg_ind:end_ind,:)/)
+  fo->zmean = (/zmean(beg_ind:end_ind,:)/)
+  fo->mmean = (/mmean(beg_ind:end_ind,:)/)
+  fo->raindbz = (/raindbz(beg_ind:end_ind,:)/)
+  fo->mask_w = (/mask_w(beg_ind:end_ind,:)/)
+  fo->mask_u = (/mask_u(beg_ind:end_ind,:)/)
+  fo->mask_v = (/mask_v(beg_ind:end_ind,:)/)
+  fo->mask_dbz = (/mask_dbz(beg_ind:end_ind,:)/)
+  fo->omegpass1 = (/omegpass1(beg_ind:end_ind,:)/)
+  fo->zonalpass1 = (/zonalpass1(beg_ind:end_ind,:)/)
+  fo->meridpass1 = (/meridpass1(beg_ind:end_ind,:)/)
+  fo->rainpass1 = (/rainpass1(beg_ind:end_ind,:)/)
+
+end do
