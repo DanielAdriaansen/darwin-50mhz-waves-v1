@@ -17,7 +17,7 @@
 ncpath = "/d1/dadriaan/paper/data/raw"
 
 ; Path to output netCDF files
-ncout = "/d1/dadriaan/paper/data/masked_offset"
+ncout = "/d1/dadriaan/paper/data/masked"
 
 ; Which tests would you like to employ to filter te 920 data for precip?
 ; TEST 1: z > 4 km && valid dbz
@@ -38,19 +38,10 @@ t4 = False
 t4v = 5.0
 t4z = 8000.0
 
-; What hour is the beginning of a day? In Darwin, we will use 02Z to 02Z, or 1130-1130 local time.
-beghr = 2
-
 ; Print configuration for user:
 print("")
 print("#############################")
 print("")
-print("DAY BEGINS AT: "+sprinti("%02i",tointeger(beghr))+"Z")
-;if daynum.lt.0 then
-;  print("PLOTTING DATA FOR ALL DAYS")
-;else
-;  print("PLOTTING DATA FOR DAY NUMBER: "+daynum)
-;end if
 if t1 then
   print("PRECIP TEST 1: YES")
 else
