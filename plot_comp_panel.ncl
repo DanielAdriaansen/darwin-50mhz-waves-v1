@@ -37,7 +37,7 @@ end if
 foundoffset = False
 
 ; What wind component?
-windcomp = "w"
+windcomp = "v"
 
 ; Break or monsoon?
 bm = "break"
@@ -46,7 +46,7 @@ bm = "break"
 ; raw = raw data
 ; data = raw data with precip mask applied
 ; prime = perturbation wind
-vers = "raw"
+vers = "prime"
 
 ; Path to image output
 imgout = "/d1/dadriaan/paper/images/comp_"+vers
@@ -474,8 +474,25 @@ tres@vpYF = 0.33 ; THREE BOTTOM
 ;tres@vpYF = 0.49 ; FOUR MIDDLE BOTTOM
 delete(tres@cnLevels)
 delete(tres@lbLabelStrings)
-tres@cnLevels = (/0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18/)
-tres@lbLabelStrings = (/"","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18",""/)
+if bm.eq."monsoon" then
+  tres@cnLevels = ispan(0,ndayssoon-1,1)
+  labs = new((/dimsizes(tres@cnLevels)+2/),string)
+  labs(0) = ""
+  labs(1:ndayssoon) = tostring(tres@cnLevels)
+  labs(dimsizes(labs)-1) = ""
+  tres@lbLabelStrings = labs
+  ;tres@cnLevels = (/0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18/)
+  ;tres@lbLabelStrings = (/"","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18",""/)
+else
+  tres@cnLevels = ispan(0,ndaysbreak-1,1)
+  labs = new((/dimsizes(tres@cnLevels)+2/),string)
+  labs(0) = ""
+  labs(1:ndaysbreak) = tostring(tres@cnLevels)
+  labs(dimsizes(labs)-1) = ""
+  tres@lbLabelStrings = labs
+  ;tres@cnLevels = (/0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21/)
+  ;tres@lbLabelStrings = (/"","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21",""/)
+end if
 tres@lbTitleString = "Count"
 tres@tiXAxisString = "Time (minutes)"
 t32 = gsn_csm_contour(twks,wnpts(height|0:120,time|:),tres)
