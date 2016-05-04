@@ -249,11 +249,17 @@ do t=0,1439,1
     ;print("PROCESSING HEIGHT "+z)
     ;print("")
     ; Create a temporary array to hold the minutes that we're at from each day in the period (break/monsoon)
-    ;tmp = new((/ndayssoon/),float)
-    tmp = new((/ndaysbreak/),float)
+    if bm.eq."monsoon" then
+      tmp = new((/ndayssoon/),float)
+      daysinloop = ndayssoon
+    else
+      tmp = new((/ndaysbreak/),float)
+      daysinloop = ndaysbreak
+    end if
     tmp@_FillValue = bf
+    
     ; Loop over every day in the period and collect the relevant data
-    do nd=0,ndayssoon-1,1
+    do nd=0,daysinloop-1,1
 
       ; Vertical velocity
       if windcomp.eq."w" then
@@ -356,5 +362,122 @@ printMinMax(wcomp,0)
 printMinMax(wsdev,0)
 printMinMax(wnpts,0)
 
+; Plot a three panel plot of the above wind composite
+twks = gsn_open_wks("png","composite_"+vers+"_"+bm+"_"+windcomp)
+;twks = gsn_open_wks("png","composite_raw_"+windcomp)
+;twks = gsn_open_wks("png","composite_filter_"+windcomp)
+;twks = gsn_open_wks("png","composite_turb_"+windcomp)
 
+; RESOURCES
+;gsn_define_colormap(pwks,"rainbow+gray")
+tres = True
+tres@gsnMaximize = False
+tres@gsnFrame = False
+tres@gsnDraw = False
+tres@cnFillMode = "RasterFill"
+tres@cnFillOn = True
+tres@cnLineLabelsOn = False
+tres@cnLinesOn = False
+tres@vpYF = 0.95 ; THREE TOP
+tres@vpHeightF = 0.25 ; THREE PANELS
+;tres@vpYF = 0.97 ; FOUR TOP
+;tres@vpHeightF = 0.18 ; FOUR PANELS
+tres@vpWidthF = 0.7
+tres@vpXF = 0.15
+tres@cnLevelSelectionMode = "ExplicitLevels"
+tres@lbLabelBarOn = True
+tres@cnInfoLabelOn = False
+tres@tmXTOn = False
+tres@tmYROn = False
+tres@gsnLeftStringFontHeightF = 0.012
+tres@gsnRightStringFontHeightF = 0.012
+if bm.eq."monsoon" then
+  tres@gsnLeftString = prettyPrint(unix_time(begmonsoon),"ymdhm")
+  tres@gsnRightString = prettyPrint(unix_time(endmonsoon),"ymdhm")
+else
+  tres@gsnLeftString = prettyPrint(unix_time(begbreak),"ymdhm")
+  tres@gsnRightString = prettyPrint(unix_time(endbreak),"ymdhm")
+end if
+tres@tiXAxisFontHeightF = 0.012
+;;if daynum.lt.0 then
+;;  tres@tmXBMode = "Explicit"
+;;  tres@tmXBValues = daybeg
+;;  tres@tmXBLabels = tostring(doy)
+;;  tres@tmXBLabelFontHeightF = 0.01
+;;  tres@tmXBLabelAngleF = -90.0
+;;  tres@tmXBLabelJust = "CenterCenter"
+;;else
+tres@tmXBLabelFontHeightF = 0.01
+;;end if
+tres@tmYLMode = "Explicit"
+tres@tmYLValues = (/0,20,40,60,80,100,120/)
+tres@tmYLLabels = tostring(tres@tmYLValues/10)
+tres@tmYLLabelFontHeightF = 0.01
+tres@trYMinF = 0.0
+tres@tiYAxisString = "Height (km)"
+tres@tiYAxisFontHeightF = 0.01
+if windcomp.eq."w" then
+  tres@cnLevels = (/-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3/)
+  tres@lbLabelStrings = (/"","-0.3","-0.2","-0.1","0.0","0.1","0.2","0.3",""/)
+  tres@lbTitleString = "50 MHz w' (m/s)"
+end if
+if windcomp.eq."u" .or. windcomp.eq."v" then
+  tres@cnLevels = (/-10.0,-8.0,-6.0,-4.0,-2.0,0.0,2.0,4.0,6.0,8.0,10.0/)
+  tres@lbLabelStrings = (/"","-10.0","-8.0","-6.0","-4.0","-2.0","0.0","2.0","4.0","6.0","8.0","10.0",""/)
+  tres@lbTitleString = "50 MHz u' (m/s)"
+end if
+tres@cnFillPalette = "ncl_default"
+tres@lbOrientation = "vertical"
+tres@lbLeftMarginF = 0.30
+tres@lbRightMarginF = 0.0
+tres@lbTitleFontHeightF = 0.010
+tres@lbLabelFontHeightF = 0.008
+tres@lbTitlePosition = "Right"
+tres@lbTitleDirection = "Across"
+tres@lbTitleAngleF = 90.0
+tres@lbTitleOffsetF = 0.3
+tres@pmLabelBarOrthogonalPosF = 0.0
+tres@pmLabelBarWidthF = 0.07
+tres@pmLabelBarSide = "Right"
+tres@lbLabelAlignment = "ExternalEdges"
+tres@tiMainOffsetYF = -0.016
+if bm.eq."monsoon" then
+  tres@tiMainString = str_upper(bm)+" ("+sprinti("%.2i",toint(ndayssoon))+" DAYS)"
+else
+  tres@tiMainString = str_upper(bm)+" ("+sprinti("%.2i",toint(ndaysbreak))+" DAYS)"
+end if
+tres@tiMainFontHeightF = 0.012
 
+; PLOTS
+t12 = gsn_csm_contour(twks,wcomp(height|0:120,time|:),tres)
+draw(t12)
+tres@vpYF = 0.64 ; THREE MIDDLE
+;tres@vpYF = 0.73 ; FOUR MIDDLE TOP
+tres@gsnLeftString = ""
+tres@gsnRightString = ""
+tres@tiMainString = ""
+delete(tres@cnLevels)
+delete(tres@lbLabelStrings)
+if windcomp.eq."w" then
+  tres@cnLevels = (/0.0,0.1,0.2,0.3,0.4,0.5/)
+  tres@lbLabelStrings = (/"","0.0","0.1","0.2","0.3","0.4","0.5",""/)
+  tres@lbTitleString = "50 MHz w' (m/s)"
+end if
+if windcomp.eq."u" .or. windcomp.eq."v" then
+  tres@cnLevels = (/0.0,2.0,4.0,6.0,8.0,10.0/)
+  tres@lbLabelStrings = (/"","0.0","2.0","4.0","6.0","8.0","10.0",""/)
+  tres@lbTitleString = "50 MHz u' (m/s)"
+end if
+t22 = gsn_csm_contour(twks,wsdev(height|0:120,time|:),tres)
+draw(t22)
+tres@vpYF = 0.33 ; THREE BOTTOM
+;tres@vpYF = 0.49 ; FOUR MIDDLE BOTTOM
+delete(tres@cnLevels)
+delete(tres@lbLabelStrings)
+tres@cnLevels = (/0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18/)
+tres@lbLabelStrings = (/"","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18",""/)
+tres@lbTitleString = "Count"
+tres@tiXAxisString = "Time (minutes)"
+t32 = gsn_csm_contour(twks,wnpts(height|0:120,time|:),tres)
+draw(t32)
+frame(twks)
