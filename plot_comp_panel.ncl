@@ -91,6 +91,13 @@ meridpass1 = fin[:]->meridpass1
 ntimes = dimsizes(unix_time)
 numhgts = dimsizes(pagl)
 
+; Print info for user
+nhrsdata = dimsizes(unix_time)/60
+ndaysdata = dimsizes(unix_time)/1440
+print("PROCESSING "+ndaysdata+" DAYS OF DATA ("+nhrsdata+" HOURS)")
+print("TOTAL MINUTES = "+dimsizes(unix_time))
+print("")
+
 ; Determine the index of the beginning and the end of the monsoon and break periods
 ; Need to set the beginning index for the break period
 begmonsoon = (beghr*60)+(1440*mbeg)
