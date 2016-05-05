@@ -17,6 +17,9 @@
 ; Path to input netCDF files
 ncpath = "/d1/dadriaan/paper/data/masked"
 
+; Path to image output
+imgout = "/d1/dadriaan/paper/images/"
+
 ; Monsoon days
 mbeg = 13 ; Note- actually day 14, but day 0 = day 1 on zpanel plot
 mdays = 20
@@ -35,30 +38,10 @@ if .not.isvar("daynum") then
   daynum = -1
 end if
 
-; Variable to make sure we've figured out how to slice the data
-foundoffset = False
-
-; What wind component?
-windcomp = "v"
-
-; Break or monsoon?
-bm = "break"
-
-; What version of the data? (raw, data, prime)?
-; raw = raw data
-; data = raw data with precip mask applied
-; prime = perturbation wind
-vers = "prime"
-
-; Path to image output
-imgout = "/d1/dadriaan/paper/images/comp_"+vers
-
 ; What's the minimum number of minutes you'd like a "good" period to be?
-;mingood = 420 ; 6 hrs
-;mingood = 180 ; 3 hrs
-;mingood = 300 ; 5 hrs
-mingood = 240 ; 4 hrs
-;mingood = 60
+if .not.isvar("mingood") then
+  mingood = 240 ; 4 hrs
+end if
 
 ; Print configuration for user:
 print("")
@@ -123,20 +106,6 @@ ndaysbreak = ((endbreak-begbreak)/1440)
 print("ndaysbreak = "+ndaysbreak)
 print("")
 
-; Subset begin and end for averaging for calculating perturbations
-;if bm.eq."monsoon" then
-;  sub_beg = begmonsoon
-;  sub_end = endmonsoon
-;else
-;  sub_beg = begbreak
-;  sub_end = endbreak
-;end if
-;print("CALCULATING MEAN FOR PERTURBATION FROM:")
-;print(""+prettyPrint(unix_time(sub_beg),"ymdhms"))
-;print("TO")
-;print(""+prettyPrint(unix_time(sub_end),"ymdhms"))
-;print("")
-
 print("=================PROCESSING ALL")
 print("")
 ; Find the indices of all the times identified as precip
@@ -160,12 +129,9 @@ end do
 npers = dimsizes(ind(.not.ismissing(badprecip)))
 print("FOUND "+npers+" GOOD PERIODS.")
 print("")
-wks = gsn_open_wks("png","histall")
+wks = gsn_open_wks("png",imgout+"histall_"+sprinti("%.3i",toint(mingood)))
 hres = True
 hres@gsnHistogramBinIntervals = (/0,60,120,180,240,300,360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380,1440,1500,1560,1620,1680,1740,1800/)
-;hres@tmXBMode = "Explicit"
-;hres@tmXBValues = hres@gsnHistogramBinIntervals
-;hres@tmXBLabels = tostring(hres@gsnHistogramBinIntervals/60)
 hres@tmXBLabelAngleF = 45.0
 hres@tmXBLabelFontHeightF = 0.012
 hres@tiXAxisString = "Minutes"
@@ -222,7 +188,7 @@ end do
 npers2 = dimsizes(ind(.not.ismissing(badminprecip)))
 print("FOUND "+npers2+" GOOD PERIODS.")
 print("")
-wks2 = gsn_open_wks("png","histmin")
+wks2 = gsn_open_wks("png",imgout+"histmin_"+sprinti("%.3i",toint(mingood)))
 bins2 = gsn_histogram(wks2,badminprecip,hres)
 draw(bins2)
 frame(wks2)
@@ -288,7 +254,7 @@ end do
 npersmon = dimsizes(ind(.not.ismissing(badmonprecip)))
 print("FOUND "+npersmon+" GOOD PERIODS.")
 print("")
-wks3 = gsn_open_wks("png","histmon")
+wks3 = gsn_open_wks("png",imgout+"histmon_"+sprinti("%.3i",toint(mingood)))
 bins3 = gsn_histogram(wks3,badmonprecip,hres)
 draw(bins3)
 frame(wks3)
@@ -353,7 +319,7 @@ end do
 npersbrk = dimsizes(ind(.not.ismissing(badbrkprecip)))
 print("FOUND "+npersbrk+" GOOD PERIODS.")
 print("")
-wks4 = gsn_open_wks("png","histbrk")
+wks4 = gsn_open_wks("png",imgout+"histbrk_"+sprinti("%.3i",toint(mingood)))
 bins4 = gsn_histogram(wks4,badbrkprecip,hres)
 draw(bins4)
 frame(wks4)
@@ -394,7 +360,7 @@ do t=0,1439,1
 end do
 
 ; Plot two panel plot showing number of times used in ST average for break/monsoon (composite essentially)
-wksc = gsn_open_wks("png","nst")
+wksc = gsn_open_wks("png",imgout+"nst_"+sprinti("%.3i",toint(mingood)))
 gsn_define_colormap(wksc,"rainbow+gray")
 res = True
 res@gsnDraw = False
@@ -438,4 +404,3 @@ frame(wksc)
 ;    omegpass2(nt,:) = omean(nt,:)
 ;  end if
 ;end do
-
