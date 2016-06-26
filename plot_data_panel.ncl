@@ -166,7 +166,7 @@ pres@gsnLeftStringFontHeightF = 0.012
 pres@gsnRightStringFontHeightF = 0.012
 pres@gsnLeftString = sstring
 pres@gsnRightString = estring
-pres@tiXAxisFontHeightF = 0.012
+pres@tiXAxisFontHeightF = 0.01
 if daynum.lt.0 then
   pres@tmXBMode = "Explicit"
   pres@tmXBValues = daybeg
@@ -181,6 +181,10 @@ pres@tmYLMode = "Explicit"
 pres@tmYLValues = (/0,20,40,60,80,100,120/)
 pres@tmYLLabels = tostring(pres@tmYLValues/10)
 pres@tmYLLabelFontHeightF = 0.01
+pres@tmXBMode = "Explicit"
+pres@tmXBValues = (/0,120,240,360,480,600,720,840,960,1080,1200,1320,1440/)
+pres@tmXBLabels = (/"1130","1330","1530","1730","1930","2130","2330","0130","0330","0530","0730","0930","1130"/)
+pres@tmXBLabelFontHeightF = 0.01
 pres@trYMinF = 0.0
 pres@tiYAxisString = "Height (km)"
 pres@tiYAxisFontHeightF = 0.01
@@ -233,7 +237,7 @@ pres@vpYF = 0.25 ; FOUR BOTTOM
 if daynum.lt.0 then
   pres@tiXAxisString = "Day of year"
 else
-  pres@tiXAxisString = "Time (minutes)"
+  pres@tiXAxisString = "Local Time (Darwin)"
 end if
 delete(pres@cnLevels)
 delete(pres@lbLabelStrings)
