@@ -15,7 +15,7 @@
 ;#################################### User Config ######################################;
 
 ; Path to input netCDF files
-ncpath = "/d1/dadriaan/paper/data/masked"
+ncpath = "/d1/dadriaan/paper/data/maskedmin"
 
 ; Path to image output
 imgout = "/d1/dadriaan/paper/images/"
