@@ -19,7 +19,7 @@
 ncpath = "/d1/dadriaan/paper/data/masked"
 
 ; Path to output netCDF files
-ncout = "/d1/dadriaan/paper/data/maskedmin"
+ncout = "/d1/dadriaan/paper/data/maskedminbad"
 
 ; What's the minimum number of minutes you'd like a "good" period to be?
 if .not.isvar("mingood") then
@@ -46,6 +46,9 @@ plat = fin[0]->plat
 
 unix_time = fin[:]->unix_time
 precipflag = fin[:]->precipflag
+mask_w = fin[:]->mask_w
+mask_u = fin[:]->mask_u
+mask_v = fin[:]->mask_v
 omegpass1 = fin[:]->omegpass1
 zonalpass1 = fin[:]->zonalpass1
 meridpass1 = fin[:]->meridpass1
@@ -62,80 +65,7 @@ print("PROCESSING "+ndaysdata+" DAYS OF DATA ("+nhrsdata+" HOURS)")
 print("TOTAL MINUTES = "+dimsizes(unix_time))
 print("")
 
-print("=================PROCESSING ALL")
-print("")
-; Find the indices of all the times identified as precip
-badtimes = ind(precipflag.gt.0)
-print("FOUND "+dimsizes(badtimes)+" times with precip.")
-
-; Loop over the bad times, find the length of each bad period and store it
-badprecip = new((/dimsizes(badtimes)/),integer)
-do f=0,dimsizes(badtimes)-2,1
-  dnt = badtimes(f+1)-badtimes(f)
-  if dnt.gt.1 then
-    nmin = dnt%60
-    nhrs = dnt/60
-    ;print("")
-    ;print("LENGTH OF PERIOD = "+nhrs+" HRS "+nmin+" MIN")
-    ;print("PER BEG IDX = "+badtimes(f))
-    ;print("PER END IDX = "+badtimes(f+1))
-    badprecip(f) = dnt
-  end if
-end do
-npers = dimsizes(ind(.not.ismissing(badprecip)))
-print("FOUND "+npers+" GOOD PERIODS.")
-print("")
-
-; At this point the 50 MHz data have been flagged for precipitation using the 920 data. We now want to
-; bring in the idea of a "darwin" day, which runs 02Z to 02Z. But first we want to test some interpolation.
-; We need to find periods that were flagged for precip less than some number of minutes (configurable), and
-; do linear interpolation between the gaps. We should test 0, 1, 5, and 10 minutes and plot time series of the
-; data to make sure it looks "ok" after interpolation.
-
-; Loop over the indices and check how many times each period is. If it's less than some threshold
-; then just turn on the precip flag those times too, effectively "filtering" those times.
-; The time resolution of the data here is assumed to be 1 minute.
-print("===============ELIMINATING MINGOOD")
-print("")
-do f=0,dimsizes(badtimes)-2,1
-  dnt = badtimes(f+1)-badtimes(f)
-  ;print("NUM TIMES = "+dnt)
-  ;if dnt.gt.1 .and. dnt.le.mingood then
-  if dnt.le.mingood then
-    precipflag(badtimes(f):badtimes(f+1)) = 1
-    ;print("NUM TIMES = "+dnt)
-  end if
-  ;if dnt.gt.1 then
-  ;  print("NUM ANY TIMES = "+dnt)
-  ;end if
-end do
-
-; Now do it again and print the information about the length of the good periods.
-newbad = ind(precipflag.gt.0)
-badminprecip = new((/dimsizes(newbad)/),integer)
-print("FOUND "+dimsizes(newbad)+" total 'bad' (precip + less than min) times.")
-print("")
-do f=0,dimsizes(newbad)-2,1
-  dnt = newbad(f+1)-newbad(f)
-  if dnt.gt.1 then
-    ;print("NUM NEW TIMES = "+dnt)
-    nmin = dnt%60
-    nhrs = dnt/60
-    ;print("")
-    ;print("LENGTH OF PERIOD = "+nhrs+" HRS "+nmin+" MIN")
-    ;print("PER BEG IDX = "+newbad(f))
-    ;print("PER END IDX = "+newbad(f+1))
-    badminprecip(f) = dnt
-  end if
-end do
-npers2 = dimsizes(ind(.not.ismissing(badminprecip)))
-print("FOUND "+npers2+" GOOD PERIODS.")
-print("")
-
-;========================
-; USE CODE BELOW TO APPLY THE NEW MASK TO THE DATA
-;
-; Store the final pass after filtering out "noisy" periods of good data less than threshold
+; New matrices to hold the final filtered data
 rainpass2 = new((/dimsizes(rainpass1)/),float)
 rainpass2@_FillValue = bf
 omegpass2 = new((/dimsizes(omegpass1)/),float)
@@ -144,19 +74,305 @@ zonalpass2 = new((/dimsizes(zonalpass1)/),float)
 zonalpass2@_FillValue = bf
 meridpass2 = new((/dimsizes(meridpass1)/),float)
 meridpass2@_FillValue = bf
-do nt=0,ntimes-1,1
-  if precipflag(nt).gt.0 then
-    rainpass2(nt,:) = bf
-    omegpass2(nt,:) = bf
-    zonalpass2(nt,:) = bf
-    meridpass2(nt,:) = bf
-  else
-    rainpass2(nt,:) = rainpass1(nt,:)
-    omegpass2(nt,:) = omegpass1(nt,:)
-    zonalpass2(nt,:) = zonalpass1(nt,:)
-    meridpass2(nt,:) = meridpass1(nt,:)
-  end if
+
+print("=================PROCESSING ALL WINDS")
+print("")
+; This needs to operate in 3D- do it level by level but also component by component since
+; sometimes w could be good but u or v might be bad. To find bad data, use the "mask_x" matrices
+; which contain flags for the data quality (1 = good, 2 = bad, 3 = precip)
+;do z=29,29,1
+do z=0,numhgts-1,1
+
+  ; Print current height for user
+  print("z = "+pagl(z))
+  
+  ; Find the indices of all the times identified as precip or bad data at this height
+  badw = ind(mask_w(:,z).gt.1) ; PRECIP + BAD
+  badu = ind(mask_u(:,z).gt.1) ; PRECIP + BAD
+  badv = ind(mask_v(:,z).gt.1) ; PRECIP + BAD
+  ;badw = ind(mask_w(:,z).eq.3) ; PRECIP ONLY
+  ;badu = ind(mask_u(:,z).eq.3) ; PRECIP ONLY
+  ;badv = ind(mask_v(:,z).eq.3) ; PRECIP ONLY
+  print("FOUND "+dimsizes(badw)+" times that don't work (precip or bad) for W.")
+  print("PERCENT TIMES IGNORED FOR W = "+(tofloat(dimsizes(badw))/tofloat(ntimes))*100.0)
+  print("FOUND "+dimsizes(badu)+" times that don't work (precip or bad) for U.")
+  print("PERCENT TIMES IGNORED FOR U = "+(tofloat(dimsizes(badu))/tofloat(ntimes))*100.0)
+  print("FOUND "+dimsizes(badv)+" times that don't work (precip or bad) for V.")
+  print("PERCENT TIMES IGNORED FOR V = "+(tofloat(dimsizes(badv))/tofloat(ntimes))*100.0)
+
+  ; Loop over the bad times (indexes), find the length of each period and store it. Since the data
+  ; are spaced every 1 minute, using the indexes is the same as using minutes. Taking the difference
+  ; between adjacent indexes will identify the length (minutes) of the "good" periods of data. For example, if
+  ; the array of indexes jumps from 140 to 200, we know there is a 58 minute period of "good" data because
+  ; we indexed looking for bad data. The "good" data period would be from index 141 to 199.
+  print("=============FINDING GOOD PERIODS.")
+  badwdata = new((/dimsizes(badw)/),integer)
+  badudata = new((/dimsizes(badu)/),integer)
+  badvdata = new((/dimsizes(badv)/),integer)
+  do f=0,dimsizes(badw)-2,1
+    dnt = badw(f+1)-badw(f)
+    if dnt.gt.1 then
+      gbeg = badw(f)+1
+      gend = badw(f+1)-1
+      ;print("GBEG = "+gbeg)
+      ;print("GEND = "+gend)
+      gdiff = gend-gbeg
+      if gdiff.eq.0.0 then
+        ;print("FOUND 0")
+        ;print("badf = "+badw(f))
+        ;print("badf+1 = "+badw(f+1))
+        ;print("gbeg = "+gbeg)
+        ;print("gend = "+gend)
+        nmin = 1
+        nhrs = 0
+      else
+        ;print("FOUND >0")
+        ;print("badf = "+badw(f))
+        ;print("badf+1 = "+badw(f+1))
+        ;print("gbeg = "+gbeg)
+        ;print("gend = "+gend)
+        nmin = gdiff%60
+        nhrs = gdiff/60
+      end if
+      ;;nmin = dnt%60
+      ;;nhrs = dnt/60
+      ;print("")
+      ;print("LENGTH OF PERIOD = "+nhrs+" HRS "+nmin+" MIN")
+      ;print("PER BEG IDX = "+badw(f))
+      ;print("PER END IDX = "+badw(f+1))
+      ;print("PER BEG IDX = "+gbeg)
+      ;print("PER END IDX = "+gend)
+      ;badwdata(f) = dnt
+      badwdata(f) = nmin
+    end if
+  end do
+  do f=0,dimsizes(badu)-2,1
+    dnt = badu(f+1)-badu(f)
+    if dnt.gt.1 then
+      gbeg = badu(f)+1
+      gend = badu(f+1)-1
+      gdiff = gend-gbeg
+      if gdiff.eq.0.0 then
+        nmin = 1
+        nhrs = 0
+      else
+        nmin = gdiff%60
+        nhrs = gdiff/60
+      end if
+      ;badudata(f) = dnt
+      badudata(f) = nmin
+    end if
+  end do
+  do f=0,dimsizes(badv)-2,1
+    dnt = badv(f+1)-badv(f)
+    if dnt.gt.1 then
+      gbeg = badv(f)+1
+      gend = badv(f+1)-1
+      gdiff = gend-gbeg
+      if gdiff.eq.0.0 then
+        nmin = 1
+        nhrs = 0
+      else
+        nmin = gdiff%60
+        nhrs = gdiff/60
+      end if
+      ;badvdata(f) = dnt
+      badvdata(f) = nmin
+    end if
+  end do
+  ; Print the number of valid good periods. This is simply anywhere the array baddata has valid data, since
+  ; baddata contains the length of each good period in minutes.
+  npers = dimsizes(ind(.not.ismissing(badwdata)))
+  print("FOUND "+npers+" GOOD W PERIODS BEFORE FILTER.")
+  npers = dimsizes(ind(.not.ismissing(badudata)))
+  print("FOUND "+npers+" GOOD U PERIODS BEFORE FILTER.")
+  npers = dimsizes(ind(.not.ismissing(badvdata)))
+  print("FOUND "+npers+" GOOD V PERIODS BEFORE FILTER.")
+
+  ;/// JUNK COMMENT REMOVE EVENTUALLY
+  ; At this point the 50 MHz data have been flagged for precipitation using the 920 data. We now want to
+  ; bring in the idea of a "darwin" day, which runs 02Z to 02Z. But first we want to test some interpolation.
+  ; We need to find periods that were flagged for precip less than some number of minutes (configurable), and
+  ; do linear interpolation between the gaps. We should test 0, 1, 5, and 10 minutes and plot time series of the
+  ; data to make sure it looks "ok" after interpolation.
+  ;///
+
+  ; Now do the same looping again, but "turn off" any good periods that are less than the threshold "mingood" specified
+  ; by the user at the top of this script. The time resolution of the data here is assumed to be 1 minute.
+  print("===============ELIMINATING MINGOOD")
+  do f=0,dimsizes(badw)-2,1
+    dnt = badw(f+1)-badw(f)
+    gbeg = badw(f)+1
+    gend = badw(f+1)-1
+    glen = gend-gbeg
+    ;print("NUM TIMES = "+dnt)
+    if dnt.gt.1 .and. glen.lt.mingood then
+    ;if glen.le.mingood then
+      ;precipflag(badtimes(f):badtimes(f+1)) = 1
+      ;mask_w(badw(f):badw(f+1),z) = 4 ; ASSIGN SPECIAL VALUE OF TOO SMALL
+      mask_w(gbeg:gend,z) = 4 ; ASSIGN SPECIAL VALUE OF TOO SMALL
+      ;print("NUM TIMES = "+dnt)
+    end if
+    ;if dnt.gt.1 then
+    ;  print("NUM ANY TIMES = "+dnt)
+    ;end if
+  end do
+  do f=0,dimsizes(badu)-2,1
+    dnt = badu(f+1)-badu(f)
+    gbeg = badu(f)+1
+    gend = badu(f+1)-1
+    glen = gend-gbeg
+    ;if glen.le.mingood then
+    if dnt.gt.1 .and. glen.lt.mingood then
+      ;mask_u(badu(f):badu(f+1),z) = 4 ; ASSIGN SPECIAL VALUE OF TOO SMALL
+      mask_u(gbeg:gend,z) = 4 ; ASSIGN SPECIAL VALUE OF TOO SMALL
+    end if
+  end do
+  do f=0,dimsizes(badv)-2,1
+    dnt = badv(f+1)-badv(f)
+    gbeg = badv(f)+1
+    gend = badv(f+1)-1
+    glen = gend-gbeg
+    ;if glen.le.mingood then
+    if dnt.gt.1 .and. glen.lt.mingood then
+      ;mask_v(badv(f):badv(f+1),z) = 4 ; ASSIGN SPECIAL VALUE OF TOO SMALL
+      mask_v(gbeg:gend,z) = 4 ; ASSIGN SPECIAL VALUE OF TOO SMALL
+    end if
+  end do
+
+  ; Find the indices of all the times identified as precip, bad, or too short at this height
+  newbadw = ind(mask_w(:,z).gt.1) ; PRECIP + BAD
+  ;newbadw = ind(mask_w(:,z).gt.2) ; PRECIP ONLY
+  print("FOUND "+dimsizes(newbadw)+" times that don't work (precip, bad, or too short) for W.")
+  print("PERCENT W TIMES IGNORED = "+(tofloat(dimsizes(newbadw))/tofloat(ntimes))*100.0)
+  newbadu = ind(mask_u(:,z).gt.1) ; PRECIP + BAD
+  ;newbadu = ind(mask_u(:,z).gt.2) ; PRECIP ONLY
+  print("FOUND "+dimsizes(newbadu)+" times that don't work (precip, bad, or too short) for U.")
+  print("PERCENT U TIMES IGNORED = "+(tofloat(dimsizes(newbadu))/tofloat(ntimes))*100.0)
+  newbadv = ind(mask_v(:,z).gt.1) ; PRECIP + BAD
+  ;newbadv = ind(mask_v(:,z).gt.2) ; PRECIP ONLY
+  print("FOUND "+dimsizes(newbadv)+" times that don't work (precip, bad, or too short) for V.")
+  print("PERCENT V TIMES IGNORED = "+(tofloat(dimsizes(newbadv))/tofloat(ntimes))*100.0)
+
+  ; Finally, repeat the looping a third time collecting information about the length of the "good" periods after
+  ; filtering using the minimum threshold specified by the user. This is the total number of periods at the current height
+  ; for all times that do not have precip or bad data and meet the mingood threshold.
+  print("===============FINDING FINAL PERIODS.")
+  badwmin = new((/dimsizes(newbadw)/),integer)
+  badumin = new((/dimsizes(newbadu)/),integer)
+  badvmin = new((/dimsizes(newbadv)/),integer)
+  do f=0,dimsizes(newbadw)-2,1
+    dnt = newbadw(f+1)-newbadw(f)
+    if dnt.gt.1 then
+      gbeg = newbadw(f)+1
+      gend = newbadw(f+1)-1
+      gdiff = gend-gbeg
+      if gdiff.eq.0.0 then
+        print("FOUND =0")
+        print("badf = "+newbadw(f))
+        print("badf+1 = "+newbadw(f+1))
+        print("gbeg = "+gbeg)
+        print("gend = "+gend)
+        nmin = 1
+        nhrs = 0
+      else
+        print("FOUND >0")
+        print("badf = "+newbadw(f))
+        print("badf+1 = "+newbadw(f+1))
+        print("gbeg = "+gbeg)
+        print("gend = "+gend)
+        nmin = gdiff%60
+        nhrs = gdiff/60
+      end if
+      ;print("NUM NEW TIMES = "+dnt)
+      ;nmin = dnt%60
+      ;nhrs = dnt/60
+      print("")
+      print("LENGTH OF PERIOD = "+nhrs+" HRS "+nmin+" MIN")
+      ;print("PER BEG IDX = "+newbadw(f))
+      ;print("PER END IDX = "+newbadw(f+1))
+      print("PER BEG IDX = "+gbeg)
+      print("PER END IDX = "+gend)
+      ;badwmin(f) = dnt
+      badwmin(f) = nmin
+    end if
+  end do
+  do f=0,dimsizes(newbadu)-2,1
+    dnt = newbadu(f+1)-newbadu(f)
+    if dnt.gt.1 then
+      gbeg = newbadu(f)+1
+      gend = newbadu(f+1)-1
+      gdiff = gend-gbeg
+      if gdiff.eq.0.0 then
+        nmin = 1
+        nhrs = 0
+      else
+        nmin = gdiff%60
+        nhrs = gdiff/60
+      end if
+      ;badumin(f) = dnt
+      badumin(f) = nmin
+    end if
+  end do
+  do f=0,dimsizes(newbadv)-2,1
+    dnt = newbadv(f+1)-newbadv(f)
+    if dnt.gt.1 then
+      gbeg = newbadv(f)+1
+      gend = newbadv(f+1)-1
+      gdiff = gend-gbeg
+      if gdiff.eq.0.0 then
+        nmin = 1
+        nhrs = 0
+      else
+        nmin = gdiff%60
+        nhrs = gdiff/60
+      end if
+      ;badvmin(f) = dnt
+      badvmin(f) = nmin
+    end if
+  end do
+  
+  ; Print the number of valid good periods. This is simply anywhere the array badmin has valid data, since
+  ; badmin contains the length of each good period in minutes.
+  npers2 = dimsizes(ind(.not.ismissing(badwmin)))
+  print("FOUND "+npers2+" GOOD W PERIODS AFTER FILTER.")
+  npers2 = dimsizes(ind(.not.ismissing(badumin)))
+  print("FOUND "+npers2+" GOOD U PERIODS AFTER FILTER.")
+  npers2 = dimsizes(ind(.not.ismissing(badvmin)))
+  print("FOUND "+npers2+" GOOD V PERIODS AFTER FILTER.")
+
+  ; Mask out the data
+  print("==============MASKING DATA")
+  print("")
+  rainpass2(:,z) = where(precipflag.gt.0,bf,rainpass1(:,z)) ; Since we only use 920 for precip, just mask it for precip
+  ;omegpass2(:,z) = where(mask_w(:,z).gt.2,bf,omegpass1(:,z)) ; Mask based on precip only
+  omegpass2(:,z) = where(mask_w(:,z).gt.1,bf,omegpass1(:,z)) ; Mask based on precip+bad
+  ;zonalpass2(:,z) = where(mask_u(:,z).gt.2,bf,zonalpass1(:,z)) ; Mask based on precip only
+  zonalpass2(:,z) = where(mask_u(:,z).gt.1,bf,zonalpass1(:,z)) ; Mask based on precip+bad
+  ;meridpass2(:,z) = where(mask_v(:,z).gt.2,bf,meridpass1(:,z)) ; Mask based on precip only
+  meridpass2(:,z) = where(mask_v(:,z).gt.1,bf,meridpass1(:,z)) ; Mask based on precip+bad
+
+  ; Clean up before next height
+  delete([/badw,badu,badv,npers,newbadw,newbadu,newbadv,npers2,badwdata,badudata,badvdata,badwmin,badumin,badvmin/])
 end do
+
+;========================
+; USE CODE BELOW TO APPLY THE NEW MASK TO THE DATA
+;
+; Store the final pass after filtering out "noisy" periods of good data less than threshold
+;do nt=0,ntimes-1,1
+;  if precipflag(nt).gt.0 then
+;    rainpass2(nt,:) = bf
+;    omegpass2(nt,:) = bf
+;    zonalpass2(nt,:) = bf
+;    meridpass2(nt,:) = bf
+;  else
+;    rainpass2(nt,:) = rainpass1(nt,:)
+;    omegpass2(nt,:) = omegpass1(nt,:)
+;    zonalpass2(nt,:) = zonalpass1(nt,:)
+;    meridpass2(nt,:) = meridpass1(nt,:)
+;  end if
+;end do
 
 ; Determine the number of output files to write
 nof = dimsizes(allfiles)
@@ -208,6 +424,9 @@ do f=0,nof-1,1
   filevardef(fo,"zonalpass2",typeof(zonalpass2),(/"time","height"/))
   filevardef(fo,"meridpass2",typeof(meridpass2),(/"time","height"/))
   filevardef(fo,"rainpass2",typeof(rainpass2),(/"time","height"/))
+  filevardef(fo,"mask_w",typeof(mask_w),(/"time","height"/))
+  filevardef(fo,"mask_u",typeof(mask_u),(/"time","height"/))
+  filevardef(fo,"mask_v",typeof(mask_v),(/"time","height"/))
 
   ; Define output variable attributes
   filevarattdef(fo,"unix_time",unix_time)
@@ -225,6 +444,9 @@ do f=0,nof-1,1
   filevarattdef(fo,"zonalpass2",zonalpass2)
   filevarattdef(fo,"meridpass2",meridpass2)
   filevarattdef(fo,"rainpass2",rainpass2)
+  filevarattdef(fo,"mask_w",mask_w)
+  filevarattdef(fo,"mask_u",mask_u)
+  filevarattdef(fo,"mask_v",mask_v)
 
   ; Exit define mode
   setfileoption(fo,"DefineMode",False)
@@ -245,5 +467,8 @@ do f=0,nof-1,1
   fo->zonalpass2 = (/zonalpass2(beg_ind:end_ind,:)/)
   fo->meridpass2 = (/meridpass2(beg_ind:end_ind,:)/)
   fo->rainpass2 = (/rainpass2(beg_ind:end_ind,:)/)
+  fo->mask_w = (/mask_w(beg_ind:end_ind,:)/)
+  fo->mask_u = (/mask_u(beg_ind:end_ind,:)/)
+  fo->mask_v = (/mask_v(beg_ind:end_ind,:)/)
 
 end do
