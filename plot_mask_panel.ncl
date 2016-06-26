@@ -169,7 +169,7 @@ mres@gsnLeftStringFontHeightF = 0.012
 mres@gsnRightStringFontHeightF = 0.012
 mres@gsnLeftString = sstring
 mres@gsnRightString = estring
-mres@tiXAxisFontHeightF = 0.012
+mres@tiXAxisFontHeightF = 0.01
 if daynum.lt.0 then
   mres@tmXBMode = "Explicit"
   mres@tmXBValues = daybeg
@@ -184,6 +184,10 @@ mres@tmYLMode = "Explicit"
 mres@tmYLValues = (/0,20,40,60,80,100,120/)
 mres@tmYLLabels = tostring(mres@tmYLValues/10)
 mres@tmYLLabelFontHeightF = 0.01
+mres@tmXBMode = "Explicit"
+mres@tmXBValues = (/0,120,240,360,480,600,720,840,960,1080,1200,1320,1440/)
+mres@tmXBLabels = (/"1130","1330","1530","1730","1930","2130","2330","0130","0330","0530","0730","0930","1130"/)
+mres@tmXBLabelFontHeightF = 0.01
 mres@trYMinF = 0.0
 mres@tiYAxisString = "Height (km)"
 mres@tiYAxisFontHeightF = 0.01
@@ -222,7 +226,7 @@ mres@vpYF = 0.25 ; FOUR BOTTOM
 if daynum.lt.0 then
   mres@tiXAxisString = "Day of year"
 else
-  mres@tiXAxisString = "Time (minutes)"
+  mres@tiXAxisString = "Local Time (Darwin)"
 end if
 p4 = gsn_csm_contour(wks,mask_dbz(height|0:120,time|beg_ind:end_ind),mres)
 draw(p4)
