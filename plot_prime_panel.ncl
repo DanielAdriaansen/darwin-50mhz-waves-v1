@@ -259,7 +259,7 @@ tres@gsnLeftStringFontHeightF = 0.012
 tres@gsnRightStringFontHeightF = 0.012
 tres@gsnLeftString = sstring
 tres@gsnRightString = estring
-tres@tiXAxisFontHeightF = 0.012
+tres@tiXAxisFontHeightF = 0.01
 if daynum.lt.0 then
   tres@tmXBMode = "Explicit"
   tres@tmXBValues = daybeg
@@ -274,6 +274,10 @@ tres@tmYLMode = "Explicit"
 tres@tmYLValues = (/0,20,40,60,80,100,120/)
 tres@tmYLLabels = tostring(tres@tmYLValues/10)
 tres@tmYLLabelFontHeightF = 0.01
+tres@tmXBMode = "Explicit"
+tres@tmXBValues = (/0,120,240,360,480,600,720,840,960,1080,1200,1320,1440/)
+tres@tmXBLabels = (/"1130","1330","1530","1730","1930","2130","2330","0130","0330","0530","0730","0930","1130"/)
+tres@tmXBLabelFontHeightF = 0.01
 tres@trYMinF = 0.0
 tres@tiYAxisString = "Height (km)"
 tres@tiYAxisFontHeightF = 0.01
@@ -327,7 +331,7 @@ tres@vpYF = 0.25 ; FOUR BOTTOM
 if daynum.lt.0 then
   tres@tiXAxisString = "Day of year"
 else
-  tres@tiXAxisString = "Time (minutes)"
+  tres@tiXAxisString = "Local Time (Darwin)"
 end if
 delete(tres@cnLevels)
 delete(tres@lbLabelStrings)
