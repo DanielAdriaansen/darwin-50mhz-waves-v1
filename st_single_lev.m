@@ -37,7 +37,7 @@ bdays = 23;
 beghr = 2;
 
 % Are we processing the break or monsoon?
-bm = 'monsoon';
+bm = 'break';
 
 % What period do we want to break on?
 bper = 15;
@@ -192,6 +192,10 @@ for p=1:length(badw)-1
         fprintf(['\nEND TIME = ',datestr(tslice(gend)/86400+datenum(1970,1,1))])
         fprintf(['\n'])
         
+        % Note that there is a chance, since we're subsetting for monsoon and break independently of the 4hr chunk finder code,
+        % that by subsetting we could reduce either the first, last, or both the first and last chunk to some length of time less
+        % than four hours. But is this possible? Might want to parameterize the minimum chunk length at the top.
+        
         % Before we go on to the next period, extract the vector of data we want to examine in the ST and check it for NAN
         stvec = dslice(gbeg:gend);
         nmiss = length(find(isnan(stvec)));
@@ -201,7 +205,7 @@ for p=1:length(badw)-1
         else
             [str,stt,stf] = st(stvec);
         end
-        
+                
         % Advance the period counter
         periodcount = periodcount + 1;
     end

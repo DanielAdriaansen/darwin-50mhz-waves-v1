@@ -1,12 +1,13 @@
 %
 %
-% File: st_single_level.m
+% File: st_integrate.m
 %
 % Author: D. Adriaansen
 %
-% Date: 07 May 2016
+% Date: 03 Jul 2016
 %
-% Purpose: Read in pre-processed 50MHz data and perform the S-transform at a single height
+% Purpose: Read in pre-processed 50MHz data and perform the S-transform at a single height then
+%          integrate across frequency bands.
 %
 % Notes:
 %_________________________________________________________________________________________
@@ -40,12 +41,10 @@ beghr = 2;
 bm = 'break';
 
 % What period do we want to break on?
-bper = 15;
+bper = 13;
 
-% What's the frequency bin interval we want?
-fint = 0.5/10.0;
-
-% Calculate the frequency binss
+% Frequency bins for integrating
+fbins = [0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -203,6 +202,7 @@ for p=1:length(badw)-1
         
         % Before we go on to the next period, extract the vector of data we want to examine in the ST and check it for NAN
         stvec = dslice(gbeg:gend);
+        tvec = tslice(gbeg:gend);
         nmiss = length(find(isnan(stvec)));
         if nmiss > 0
             fprintf(['\n=================> ERROR! ',num2str(nmiss),' MISSING AT THIS LEVEL']);
@@ -210,9 +210,40 @@ for p=1:length(badw)-1
         else
             [str,stt,stf] = st(stvec);
         end
-                
+        
+        % Vector to hold the number of voices per band
+        nvoice = zeros(1,length(fbins)-1);
+        
+        % Matrix to hold the power in each band at each time
+        totpow = zeros(length(fbins)-1,length(tvec));
+                       
+        % Now, loop over each time in the period and compute the total power in each frequency band.
+        for t=1:length(tvec)
+            %fprintf(['\nTIME = ',datestr(tvec(t)/86400+datenum(1970,1,1))]);
+            for b=1:length(fbins)-1
+                %fprintf(['\nINTEGRATING FROM ',num2str(fbins(b)),' TO ',num2str(fbins(b+1))]);
+                % If it's the first band, ignore the zero frequency (0.0)
+                if b==1  
+                  group = find(stf>fbins(b) & stf<fbins(b+1));
+                else
+                  group = find(stf>=fbins(b) & stf<fbins(b+1));
+                end
+                % If it's the first time, store the number of voices per band
+                if t==1
+                  nvoice(b) = length(group);
+                end
+                % Now calculate total power in this band and normalize by the change in frequency which varies per chunk
+                totpow(b,t) = sum(abs(str(group,t)))*(0.5/length(stf));
+            end
+        end
+           
         % Advance the period counter
         periodcount = periodcount + 1;
+        
+        % Break if we've reached the period we want
+        if periodcount == bper
+            break;
+        end
     end
 end
 
