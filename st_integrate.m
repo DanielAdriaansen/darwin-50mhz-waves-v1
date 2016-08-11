@@ -18,8 +18,8 @@ clear;
 %%%%%%%%%%%%%%%%%%%%%%% User Config %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Path to netCDF data
-%ncpath = '/d1/dadriaan/paper/data/maskedmin';
-ncpath = '/d1/dadriaan/paper/data/maskedminbad';
+%ncpath = '/d1/dadriaan/paper/data/c2/maskedmin';
+ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
 
 % What level do we want the ST output for?
 lev = 3000;
@@ -41,7 +41,7 @@ beghr = 2;
 bm = 'break';
 
 % What period do we want to break on?
-bper = 13;
+bper = 28;
 
 % Frequency bins for integrating
 fbins = [0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5];
@@ -225,17 +225,52 @@ for p=1:length(badw)-1
                 % If it's the first band, ignore the zero frequency (0.0)
                 if b==1  
                   group = find(stf>fbins(b) & stf<fbins(b+1));
+                elseif b==length(fbins)-1
+                  group = find(stf>=fbins(b) & stf<=fbins(b+1));                  
                 else
                   group = find(stf>=fbins(b) & stf<fbins(b+1));
                 end
+                       
                 % If it's the first time, store the number of voices per band
                 if t==1
                   nvoice(b) = length(group);
                 end
+                
                 % Now calculate total power in this band and normalize by the change in frequency which varies per chunk
-                totpow(b,t) = sum(abs(str(group,t)))*(0.5/length(stf));
+                %totpow(b,t) = sum(abs(str(group,t)))*(0.5/length(stf));
+                
+                % Instead of summing/integrating, try using the average
+                totpow(b,t) = sum(abs(str(group,t)))/nvoice(b);
             end
         end
+        
+        % Before moving on, create a save a plot for this period
+        fw = [0,0,900,700];
+        figure('visible','off','position',fw);
+        
+        %clevs = [0.0,1.0,0.05];
+        clims = [0.0 1.0];
+        
+        %imagesc(stt,stf,(abs(str).*abs(str)),clims);
+        imagesc(stt,stf,(abs(str)),clims);
+        %imagesc(totpow,clims);
+        
+        set(gca,'YDir','normal');
+        cbh = colorbar;
+        ylabel('Frequency 1/s');
+        xlabel('Time (minutes)');
+        title({[bm,' period ',num2str(periodcount)],['Begin = ',datestr(tslice(gbeg)/86400+datenum(1970,1,1))],['End = ',datestr(tslice(gend)/86400+datenum(1970,1,1))],[num2str(nhrs),' HRS ',num2str(nmin),' MIN']})
+        
+        %ylabel(cbh,'abs(str)^2 (m^2/s^2)');
+        ylabel(cbh,'abs(str) (m/s)');
+        %ylabel(cbh,'Average power (m/s)')
+        
+        %set(gca,'YTick',[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5])
+        %set(gca,'YTickLabel',[0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5])
+        
+        %saveas(gcf,['st_',bm,'_period_',num2str(periodcount),'_square.png']);
+        saveas(gcf,['st_',bm,'_period_',num2str(periodcount),'_abs.png']);
+        %saveas(gcf,['st_',bm,'_period_',num2str(periodcount),'_totpow.png']);
            
         % Advance the period counter
         periodcount = periodcount + 1;
