@@ -14,10 +14,12 @@
 ;############################### User Config #####################################;
 
 ; Path to input netCDF files
-ncpath = "/d1/dadriaan/paper/data/raw"
+;ncpath = "/d1/dadriaan/paper/data/raw"
+ncpath = "/d1/dadriaan/paper/data/c2/raw"
 
 ; Path to output netCDF files
-ncout = "/d1/dadriaan/paper/data/masked"
+;ncout = "/d1/dadriaan/paper/data/masked"
+ncout = "/d1/dadriaan/paper/data/c2/masked"
 
 ; Which tests would you like to employ to filter te 920 data for precip?
 ; TEST 1: z > 4 km && valid dbz
