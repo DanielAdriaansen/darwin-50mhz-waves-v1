@@ -15,7 +15,8 @@
 ;#################################### User Config ######################################;
 
 ; Path to input netCDF files
-ncpath = "/d1/dadriaan/paper/data/maskedmin"
+;ncpath = "/d1/dadriaan/paper/data/maskedmin"
+ncpath = "/d1/dadriaan/paper/data/c2/maskedminbad"
 
 ; Path to image output
 imgout = "/d1/dadriaan/paper/images/"
@@ -139,6 +140,8 @@ hres@tiYAxisString = "Count"
 hres@gsnHistogramMinMaxBinsOn = True
 hres@gsnDraw = False
 hres@gsnFrame = False
+hres@tiMainString = "Jan/Feb, precip filtered"
+hres@tiMainFontHeightF = 0.012
 bins = gsn_histogram(wks,badprecip,hres)
 draw(bins)
 frame(wks)
@@ -189,6 +192,7 @@ npers2 = dimsizes(ind(.not.ismissing(badminprecip)))
 print("FOUND "+npers2+" GOOD PERIODS.")
 print("")
 wks2 = gsn_open_wks("png",imgout+"histmin_"+sprinti("%.3i",toint(mingood)))
+hres@tiMainString = "Jan/Feb, full filtered"
 bins2 = gsn_histogram(wks2,badminprecip,hres)
 draw(bins2)
 frame(wks2)
@@ -255,6 +259,7 @@ npersmon = dimsizes(ind(.not.ismissing(badmonprecip)))
 print("FOUND "+npersmon+" GOOD PERIODS.")
 print("")
 wks3 = gsn_open_wks("png",imgout+"histmon_"+sprinti("%.3i",toint(mingood)))
+hres@tiMainString = "Monsoon, full filtered"
 bins3 = gsn_histogram(wks3,badmonprecip,hres)
 draw(bins3)
 frame(wks3)
@@ -320,6 +325,7 @@ npersbrk = dimsizes(ind(.not.ismissing(badbrkprecip)))
 print("FOUND "+npersbrk+" GOOD PERIODS.")
 print("")
 wks4 = gsn_open_wks("png",imgout+"histbrk_"+sprinti("%.3i",toint(mingood)))
+hres@tiMainString = "Break, full filtered"
 bins4 = gsn_histogram(wks4,badbrkprecip,hres)
 draw(bins4)
 frame(wks4)
