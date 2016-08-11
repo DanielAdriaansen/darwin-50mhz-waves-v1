@@ -16,10 +16,12 @@
 ;#################################### User Config ######################################;
 
 ; Path to input netCDF files
-ncpath = "/d1/dadriaan/paper/data/masked"
+;ncpath = "/d1/dadriaan/paper/data/masked"
+ncpath = "/d1/dadriaan/paper/data/c2/masked"
 
 ; Path to output netCDF files
-ncout = "/d1/dadriaan/paper/data/maskedminbad"
+;ncout = "/d1/dadriaan/paper/data/maskedminbad"
+ncout = "/d1/dadriaan/paper/data/c2/maskedminbad"
 
 ; What's the minimum number of minutes you'd like a "good" period to be?
 if .not.isvar("mingood") then
