@@ -15,7 +15,7 @@
 ;##################################### User Config #########################################;
 
 ; Path to input netCDF files
-ncpath = "/d1/dadriaan/paper/data/c2/maskedminbad"
+ncpath = "/d1/dadriaan/paper/data/c3/maskedminbad"
 
 ; Monsoon days
 mbeg = 13 ; Note- actually day 14, but day 0 = day 1 on zpanel plot
@@ -39,7 +39,7 @@ end if
 foundoffset = False
 
 ; What wind component?
-windcomp = "v"
+windcomp = "w"
 
 ; Break or monsoon?
 bm = "break"
