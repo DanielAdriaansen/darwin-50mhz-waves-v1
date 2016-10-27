@@ -20,7 +20,7 @@
 % Path to netCDF data
 %ncpath = '/d1/dadriaan/paper/data/c2/maskedmin';
 %ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
-ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
+ncpath = '/d1/dadriaan/paper/data/c3/maskedminbad';
 
 % What level do we want the ST output for?
 lev = 3000;
@@ -45,7 +45,7 @@ bm = 'break';
 bper = -1;
 
 % Make plots or no? 1 = Yes, 0 = No
-pmake = 1;
+pmake = 0;
 
 % Frequency bins for integrating
 fbins = [0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5];
