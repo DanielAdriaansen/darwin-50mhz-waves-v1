@@ -13,12 +13,13 @@
 %_________________________________________________________________________________________
 
 % Clear the workspace
-clear;
+%clear;
 
 %%%%%%%%%%%%%%%%%%%%%%% User Config %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Path to netCDF data
 %ncpath = '/d1/dadriaan/paper/data/c2/maskedmin';
+%ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
 ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
 
 % What level do we want the ST output for?
@@ -41,7 +42,10 @@ beghr = 2;
 bm = 'break';
 
 % What period do we want to break on?
-bper = 28;
+bper = -1;
+
+% Make plots or no? 1 = Yes, 0 = No
+pmake = 1;
 
 % Frequency bins for integrating
 fbins = [0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5];
@@ -162,7 +166,13 @@ mslice = mask_w(zindex,sub_beg:sub_end);
 badw = find(mslice>1); %% PRECIP + BAD
 
 % Counter for the number of periods processed at the level requested
-periodcount = 0;
+periodcount = 1;
+
+% Vector to hold all the stvecs
+stboxplot = [];
+
+% Vector to hold the identifiers for period number
+pnums = [];
 
 % Loop over the data and find info about the periods
 for p=1:length(badw)-1
@@ -244,41 +254,64 @@ for p=1:length(badw)-1
             end
         end
         
-        % Before moving on, create a save a plot for this period
-        fw = [0,0,900,700];
-        figure('visible','off','position',fw);
+        if pmake==1
         
-        %clevs = [0.0,1.0,0.05];
-        clims = [0.0 1.0];
+          % Before moving on, create a save a plot for this period
+          fw = [0,0,900,700];
+          figure('visible','off','position',fw);
         
-        %imagesc(stt,stf,(abs(str).*abs(str)),clims);
-        imagesc(stt,stf,(abs(str)),clims);
-        %imagesc(totpow,clims);
+          %clevs = [0.0,1.0,0.05];
+          clims = [0.0 1.0];
         
-        set(gca,'YDir','normal');
-        cbh = colorbar;
-        ylabel('Frequency 1/s');
-        xlabel('Time (minutes)');
-        title({[bm,' period ',num2str(periodcount)],['Begin = ',datestr(tslice(gbeg)/86400+datenum(1970,1,1))],['End = ',datestr(tslice(gend)/86400+datenum(1970,1,1))],[num2str(nhrs),' HRS ',num2str(nmin),' MIN']})
+          %imagesc(stt,stf,(abs(str).*abs(str)),clims);
+          imagesc((tvec/86400+datenum(1970,1,1)),stf,(abs(str)),clims);
+          %imagesc(totpow,clims);
         
-        %ylabel(cbh,'abs(str)^2 (m^2/s^2)');
-        ylabel(cbh,'abs(str) (m/s)');
-        %ylabel(cbh,'Average power (m/s)')
+          set(gca,'YDir','normal');
+          cbh = colorbar;
+          ylabel('Frequency 1/s');
+          xlabel('TIme (UTC)');
+          title({[bm,' chunk ',num2str(periodcount)],['Begin = ',datestr(tslice(gbeg)/86400+datenum(1970,1,1))],['End = ',datestr(tslice(gend)/86400+datenum(1970,1,1))],['Length =',num2str(nhrs),' HRS ',num2str(nmin),' MIN']})
+          datetick('x',15);
+          axis tight;
         
-        %set(gca,'YTick',[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5])
-        %set(gca,'YTickLabel',[0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5])
+          %ylabel(cbh,'abs(str)^2 (m^2/s^2)');
+          ylabel(cbh,'abs(str) (m/s)');
+          %ylabel(cbh,'Average power (m/s)')
         
-        %saveas(gcf,['st_',bm,'_period_',num2str(periodcount),'_square.png']);
-        saveas(gcf,['st_',bm,'_period_',num2str(periodcount),'_abs.png']);
-        %saveas(gcf,['st_',bm,'_period_',num2str(periodcount),'_totpow.png']);
-           
-        % Advance the period counter
-        periodcount = periodcount + 1;
+          %set(gca,'YTick',[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5])
+          %set(gca,'YTickLabel',[0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5])
         
+          %saveas(gcf,['st_',bm,'_chunk_',num2str(periodcount),'_square.png']);
+          saveas(gcf,['st_',bm,'_chunk_',num2str(periodcount),'_abs.png']);
+          %saveas(gcf,['st_',bm,'_chunk_',num2str(periodcount),'_totpow.png']);
+        
+        end
+               
         % Break if we've reached the period we want
         if periodcount == bper
             break;
         end
+        
+        % Store the stvec
+        if periodcount == 1
+            stboxplot = [stvec'];
+        else
+            stboxplot = [stboxplot; stvec'];
+        end
+        %stboxplot = [stboxplot; stvec'];
+        
+        % Store the period number
+        if periodcount == 1
+            pnums = [(periodcount)*ones(size(stvec'))];
+        else
+            pnums = [pnums; ((periodcount)*ones(size(stvec')))];
+        end
+        %pnums = [pnums; periodcount(size(stvec'))];
+        
+        % Advance the period counter
+        periodcount = periodcount + 1;
+
     end
 end
 
