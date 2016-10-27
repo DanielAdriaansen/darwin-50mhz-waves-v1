@@ -15,11 +15,11 @@
 
 ; Path to input netCDF files
 ;ncpath = "/d1/dadriaan/paper/data/raw"
-ncpath = "/d1/dadriaan/paper/data/c2/raw"
+ncpath = "/d1/dadriaan/paper/data/c3/raw"
 
 ; Path to output netCDF files
 ;ncout = "/d1/dadriaan/paper/data/masked"
-ncout = "/d1/dadriaan/paper/data/c2/masked"
+ncout = "/d1/dadriaan/paper/data/c3/masked"
 
 ; Which tests would you like to employ to filter te 920 data for precip?
 ; TEST 1: z > 4 km && valid dbz
@@ -97,7 +97,7 @@ print("TOTAL MINUTES = "+dimsizes(y))
 print("")
 
 ; Read in 50 MHz data and assign missing data code
-omean = fin[:]->prof_dar50_Omega_mean
+omean = fin[:]->prof_dar50_Omega_mean_QCts
 omean@_FillValue = bf
 zmean = fin[:]->prof_dar50_Zonal_mean
 zmean@_FillValue = bf
