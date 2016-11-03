@@ -22,3 +22,10 @@ images/prime = 920/50 four panel perturbation with precip mask applied --> THESE
 ** images/raw = raw data from Christopher
 ** images/stdata = 920/50 four panel with precip, and minimum masks applied (input to S-transform) but not perturbations
 ** images/stdata2 = 920/50 four panel with precip, bad, and minimum masks applied (input to S-transform) but not perturbations
+** images/st_monsoon = S-Transform of all the chunks in the monsoon regime. This is just ST-w, integrated, absolute, and
+   square of the output
+** images/st_break = S-Transform of all the chunks in the break regime. This is just ST-w, integrated, absolute, and
+** images/summary = summary images showing the number of points at each time and height in the Darwin day for monsoon/break
+   regime available for analysis.
+** images/anomalies = images used for showing Christopher anomalous data
+** images/gretchenmullendore = files shared with Gretchen for meetingsi
