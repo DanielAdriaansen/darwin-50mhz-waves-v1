@@ -135,6 +135,16 @@ daybeg = ind((xvals-(beghr*60))%1440.eq.0.0)
 ; Convert the daybeg indices to a day of year, using the unix_time
 doy = day_of_year((/toint(allunix(daybeg,0))/),(/toint(allunix(daybeg,1))/),(/toint(allunix(daybeg,2))/))
 
+; Create an array of strings to use for x-axis labels- this should be DOM (day of month). Understand beginning of "day"
+; should be 02Z
+dom = ((/toint(allunix(daybeg,2))/))
+mons = ((/toint(allunix(daybeg,1))/))
+monthbegin = ind(dom.eq.1.0)
+monlab = new((/dimsizes(dom)/),string)
+monlab(monthbegin) = sprinti("%.2i",tointeger(mons(monthbegin)))
+misslab = ind(ismissing(monlab))
+monlab(misslab) = "TMP"
+
 ; Before we plot the mean wind, let's take a four day running mean
 windseries = zmean(:,mlev)
 windseries@_FillValue = bf
@@ -207,7 +217,7 @@ zres@trYMaxF = 40.0
 zres@trYMinF = -40.0
 zres@tiYAxisString = "Zonal Wind (m/s) @ 3000m (approx. 700 hPa)"
 if daynum.lt.0 then
-  zres@tiXAxisString = "Day of year"
+  zres@tiXAxisString = "Day of month"
 else
   zres@tiXAxisString = "Time (minutes)"
 end if
@@ -223,13 +233,23 @@ zres@gsnLeftString = sstring
 zres@gsnRightString = estring
 zres@xyLineThicknessF = 4
 zres@xyLineColor = "black"
+zres@tmXUseBottom = False
 if daynum.lt.0 then
   zres@tmXBMode = "Explicit"
   zres@tmXBValues = daybeg
-  zres@tmXBLabels = tostring(doy)
+  zres@tmXBLabels = tostring(dom)
   zres@tmXBLabelFontHeightF = 0.01
   zres@tmXBLabelAngleF = -90.0
   zres@tmXBLabelJust = "CenterCenter"
+  ;zres@tmXBLabelDeltaF = -0.55
+ 
+  zres@tmXTMode = "Explicit"
+  zres@tmXTValues = daybeg
+  zres@tmXTLabels = monlab
+  zres@tmXTLabelFontHeightF = 0.01
+  zres@tmXTLabelJust = "CenterCenter"
+  zres@tmXTLabelAngleF = 90.0
+  zres@tmXTLabelDeltaF = 0.55
 end if
 zres@vpWidthF = 0.7
 
@@ -274,6 +294,7 @@ pgby = (/zres@trYMinF,zres@trYMaxF,zres@trYMaxF,zres@trYMinF,zres@trYMinF/)
 pgmx = (/daybeg(13),daybeg(13),daybeg(33),daybeg(33),daybeg(13)/)
 pgmy = (/zres@trYMinF,zres@trYMaxF,zres@trYMaxF,zres@trYMinF,zres@trYMinF/)
 
+;p1 = gsn_csm_xy(zwks,unix_time(beg_ind:end_ind),windseries(beg_ind:end_ind),zres)
 p1 = gsn_csm_y(zwks,windseries(beg_ind:end_ind),zres)
 dumb1 = gsn_add_polygon(zwks,p1,pgbx,pgby,pgres)
 pgres@gsFillColor = 8
@@ -281,8 +302,9 @@ dumm1 = gsn_add_polygon(zwks,p1,pgmx,pgmy,pgres)
 draw(p1)
 
 zres@vpYF = 0.45
-zres@tiMainString = "4 Day Running Mean"
+;zres@tiMainString = "4 Day Running Mean"
 pgres@gsFillColor = 3
+;p2 = gsn_csm_xy(zwks,unix_time(beg_ind:end_ind),smoothwind(beg_ind:end_ind),zres)
 p2 = gsn_csm_y(zwks,smoothwind(beg_ind:end_ind),zres)
 dumb2 = gsn_add_polygon(zwks,p2,pgbx,pgby,pgres)
 pgres@gsFillColor = 8
