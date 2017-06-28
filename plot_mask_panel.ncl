@@ -17,10 +17,10 @@
 ;############################## User Config ######################################;
 
 ; Path to input netCDF files
-ncpath = "/d1/dadriaan/paper/data/masked"
+ncpath = "/d1/dadriaan/paper/data/c3/masked"
 
 ; Path to image output
-imgout = "/d1/dadriaan/paper/images/mask"
+imgout = "/d1/dadriaan/paper/images/mask/c3"
 
 ; What hour is the beginning of a day? In Darwin, we will use 02Z to 02Z, or 1130-1130 local time.
 beghr = 2
