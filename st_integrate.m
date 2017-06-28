@@ -19,8 +19,8 @@
 
 % Path to netCDF data
 %ncpath = '/d1/dadriaan/paper/data/c2/maskedmin';
-ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
-%ncpath = '/d1/dadriaan/paper/data/c3/maskedminbad';
+%ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
+ncpath = '/d1/dadriaan/paper/data/c3/maskedminbad';
 
 % What level do we want the ST output for?
 lev = 3000;
