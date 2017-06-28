@@ -143,7 +143,7 @@ monthbegin = ind(dom.eq.1.0)
 monlab = new((/dimsizes(dom)/),string)
 monlab(monthbegin) = sprinti("%.2i",tointeger(mons(monthbegin)))
 misslab = ind(ismissing(monlab))
-monlab(misslab) = "TMP"
+monlab(misslab) = ""
 
 ; Before we plot the mean wind, let's take a four day running mean
 windseries = zmean(:,mlev)
@@ -248,8 +248,10 @@ if daynum.lt.0 then
   zres@tmXTLabels = monlab
   zres@tmXTLabelFontHeightF = 0.01
   zres@tmXTLabelJust = "CenterCenter"
-  zres@tmXTLabelAngleF = 90.0
+  ;zres@tmXTLabelAngleF = 90.0
   zres@tmXTLabelDeltaF = 0.55
+  zres@tmXTLabelsOn = True
+  zres@tmXTLabelDeltaF = 0.25
 end if
 zres@vpWidthF = 0.7
 
