@@ -1,4 +1,4 @@
-%
+%exi
 %
 % File: st_integrate.m
 %
@@ -19,8 +19,8 @@
 
 % Path to netCDF data
 %ncpath = '/d1/dadriaan/paper/data/c2/maskedmin';
-%ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
-ncpath = '/d1/dadriaan/paper/data/c3/maskedminbad';
+ncpath = '/d1/dadriaan/paper/data/c2/maskedminbad';
+%ncpath = '/d1/dadriaan/paper/data/c3/maskedminbad';
 
 % What level do we want the ST output for?
 lev = 3000;
@@ -39,13 +39,13 @@ bdays = 23;
 beghr = 2;
 
 % Are we processing the break or monsoon?
-bm = 'break';
+bm = 'monsoon';
 
 % What period do we want to break on?
-bper = -1;
+bper = -9;
 
 % Make plots or no? 1 = Yes, 0 = No
-pmake = 0;
+pmake = 1;
 
 % Frequency bins for integrating
 fbins = [0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5];
@@ -119,7 +119,7 @@ fprintf(['begmonsoon = ',num2str(begmonsoon)])
 fprintf(['\n'])
 fprintf(['mbegunix = ',num2str(time(begmonsoon))])
 fprintf(['\n'])
-endmonsoon = begmonsoon+(1440*(mdays-1));
+endmonsoon = begmonsoon+(1440*(mdays))-1;
 fprintf(['endmonsoon = ',num2str(endmonsoon)])
 fprintf(['\n'])
 fprintf(['mendunix = ',num2str(time(endmonsoon))])
@@ -132,7 +132,8 @@ fprintf(['begbreak = ',num2str(begbreak)])
 fprintf(['\n'])
 fprintf(['bbegunix = ',num2str(time(begbreak))])
 fprintf(['\n'])
-endbreak = begbreak+(1440*(bdays-1));
+endbreak = length(time);
+%endbreak = begbreak+(1440*(bdays-1));
 fprintf(['endbreak = ',num2str(endbreak)])
 fprintf(['\n'])
 fprintf(['bendunix = ',num2str(time(endbreak))])
@@ -161,6 +162,15 @@ mslice = mask_w(zindex,sub_beg:sub_end);
 %tslice = time(:);
 %mslice = mask_w(zindex,:);
 
+% Create a vector of MATLAB datenums for whichever (monsoon or break) we're processing
+% NOTE: here tslice contains UNIX times for the entire period
+dnslice = datenum(1970,1,1,0,0,tslice);
+
+% Create a two-dimensional matrix the size of the period (x-axis) x number of bins (y-axis) to store power
+% Also turn it all to NaN's so arithmetic later isn't messed up
+seasonpow = nan(length(fbins)-1,length(dnslice));
+%seasonpow(:,:) = nan;
+
 % Find bad data
 %badw = find(mslice>2); %% PRECIP ONLY
 badw = find(mslice>1); %% PRECIP + BAD
@@ -173,6 +183,15 @@ stboxplot = [];
 
 % Vector to hold the identifiers for period number
 pnums = [];
+
+% Counter for number of bad chunks
+badchunk = 0;
+
+% Counter for the number of chunks processed
+allchunk = 0;
+
+% Total number of chunks, good or bad
+nchunks = 0;
 
 % Loop over the data and find info about the periods
 for p=1:length(badw)-1
@@ -199,12 +218,13 @@ for p=1:length(badw)-1
             nhrs = floor(gdiff/60);
         end
         fprintf(['\n'])
-        fprintf(['\nLENGTH OF PERIOD = ',num2str(nhrs),' HRS ',num2str(nmin),' MIN'])
-        fprintf(['\nPER BEG IDX = ',num2str(gbeg)])
-        fprintf(['\nPER END IDX = ',num2str(gend)])
+        fprintf(['\nLENGTH OF CHUNK = ',num2str(nhrs),' HRS ',num2str(nmin),' MIN'])
+        fprintf(['\nCNK BEG IDX = ',num2str(gbeg+sub_beg)])
+        fprintf(['\nCNK END IDX = ',num2str(gend+sub_beg)])
         fprintf(['\nBEG TIME = ',datestr(tslice(gbeg)/86400+datenum(1970,1,1))])
         fprintf(['\nEND TIME = ',datestr(tslice(gend)/86400+datenum(1970,1,1))])
         fprintf(['\n'])
+        nchunks = nchunks + 1;
         
         % Note that there is a chance, since we're subsetting for monsoon and break independently of the 4hr chunk finder code,
         % that by subsetting we could reduce either the first, last, or both the first and last chunk to some length of time less
@@ -220,7 +240,62 @@ for p=1:length(badw)-1
         else
             [str,stt,stf] = st(stvec);
         end
+       
+        % Call the plotter for the panel plot, and also this script will clean the data and examine for subsets within the chunk ignoring bad data near beginning/end
+        % Note that a call to this script modifies the stvec so that when it's used below it has been subset. If that effect is not desired, then
+        % comment out the call to this script.
+        %plot_filter_time_series;
         
+        % Clean out original S-transform stuff
+        clear str;
+        clear stt;
+        clear stf;
+        
+        % Clean up the data before we do anything. If there's any missing data in the first hour or last hour, just discard that portion
+        % of the chunk. However, must still ensure chunk is > 4 hours. If the chunk still has missing data in the middle after checking the edges,
+        % then just skip the chunk altogether (or also skip if discarding beginning/end reduces length to less than 4 hours).
+        % STEP 1: Take a 10-point (10-minute) running mean
+        stmean = runmean(abs(stvec),10);
+        % STEP 2: Find outliers (magnitude > 0.5 m/s) and turn them to NaN
+        out = find(stmean>0.5);
+        stmean(out) = nan;
+        % STEP 3: Find out whether the first 60 minutes or last 60 minutes have missing data in them
+        if ~isempty(find(isnan(stmean(end-60:end))))
+            fprintf(['\nDISCARDING END OF CHUNK'])
+            stmean(end-60:end) = nan;
+        end
+        if ~isempty(find(isnan(stmean(1:61))))
+            fprintf(['\nDISCARDING BEG OF CHUNK'])
+            stmean(1:61) = nan;
+        end
+        % STEP 4: Check for any NAN's in the middle now. If there are NAN's continue to next chunk
+        if ~isempty(find(isnan(stmean(62:end-61))))
+            fprintf(['\nDISCARDING CHUNK. NANs FOUND IN MIDDLE'])
+            badchunk = badchunk + 1;
+            continue
+        end
+        % STEP 5: Make sure the chunk is still > 4 hours, and then cut off the nan sections
+        goodind = find(~isnan(stmean));
+        goodchunk = stvec(goodind);
+        goodtime = tvec(goodind);
+        if length(goodchunk) < 240
+            fprintf(['\nDISCARDING CHUNK BECAUSE < 4 HOURS NOW'])
+            badchunk = badchunk + 1;
+            continue
+        end
+        allchunk = allchunk + 1;
+        % STEP 6: Now do the S-Transform here using only the good part of the chunk
+        [str,stt,stf] = st(goodchunk);
+        % STEP 7: Reset variables used below
+        clear tvec;
+        tvec = goodtime;
+        clear stvec;
+        stvec = goodchunk;
+        
+        % Create a vector of MATLAB datenums to use for storing the integrated power
+        % NOTE: Here tvec contains the UNIX times associated with only the current "chunk" we are processing
+        dnvec = datenum(1970,1,1,0,0,tvec);
+               
         % Vector to hold the number of voices per band
         nvoice = zeros(1,length(fbins)-1);
         
@@ -254,6 +329,13 @@ for p=1:length(badw)-1
             end
         end
         
+        % Find the start end end in the seasonal power matrix of the current chunk
+        startind = find(dnslice==dnvec(1));
+        endind = find(dnslice==dnvec(end));
+        
+        % Store the chunk power in the seasonal array
+        seasonpow(:,startind:endind) = totpow;
+        
         if pmake==1
         
           % Before moving on, create a save a plot for this period
@@ -285,6 +367,17 @@ for p=1:length(badw)-1
           %saveas(gcf,['st_',bm,'_chunk_',num2str(periodcount),'_square.png']);
           saveas(gcf,['st_',bm,'_chunk_',num2str(periodcount),'_abs.png']);
           %saveas(gcf,['st_',bm,'_chunk_',num2str(periodcount),'_totpow.png']);
+          
+          % Time series of the input velocity
+          figure('visible','off','position',fw);
+          plot((tvec/86400+datenum(1970,1,1)),stvec);
+          xlabel('Time (UTC)');
+          ylabel('Velocity (m/s)');
+          title({[bm,' chunk ',num2str(periodcount)],['Begin = ',datestr(tslice(gbeg)/86400+datenum(1970,1,1))],['End = ',datestr(tslice(gend)/86400+datenum(1970,1,1))],['Length =',num2str(nhrs),' HRS ',num2str(nmin),' MIN']})
+          datetick('x',15);
+          set(gca,'YLim',[-2.0 2.0]);
+          %axis tight;
+          saveas(gcf,['ts_',bm,'_chunk_',num2str(periodcount),'.png']);
         
         end
                
@@ -315,5 +408,7 @@ for p=1:length(badw)-1
     end
 end
 
-fprintf(['\nNUM PERIODS PROCESSED = for ',bm,' is ',num2str(periodcount)])
+fprintf(['\nNUM CHUNKS EXAMINED for ',bm,' is ',num2str(nchunks)])
+fprintf(['\nNUM CHUNKS DISCARDED for ',bm,' is ',num2str(badchunk)])
+fprintf(['\nNUM CHUNKS RETAINED for ',bm,' is ',num2str(allchunk)])
 fprintf(['\n'])
