@@ -2,12 +2,29 @@
 
 Step 1:
 run mask_50MHz_profiler.ncl
-This creates a precipitation filter using the 920 data.
+This creates a precipitation mask using the 920 data (only uses test 1) and also maska out "bad" 50 MHz data
+Mask key: 1 = good data, 2 = missing/bad 50 MHz data, 3 = precipitation
+Reads from: /d1/dadriaan/paper/data/c2/raw
+Writes to: /d1/dadriaan/paper/data/c2/masked
+Processes: Individual (daily) files
 
 Step 2:
 run mask_min_profiler.ncl
-This filters based on bad 50 data and also the 920 precip filter from step 1 as
-well as a user defined minimum period length for spectral analysis.
+This creates an additional mask for periods that are less than a user defined threshold (minutes)
+Mask key: 1 = good data, 2 = missing/bad 50 MHz data, 3 = precipitation, 4 = too short
+Reads from: /d1/dadriaan/paper/data/c2/masked
+Writes to: /d1/dadriaan/paper/data/c2/maskedminbad
+Processes: Individual (daily) files
+****NOTE: This should probably be re-written in MATLAB since we'll need to do this after finding outliers****
+
+Step 3:
+run profiler_driver.m
+1. Concatenate all daily files into a single array
+2. Save variables to a mat file
+3. Mask out the regime we're not processing
+4. Find outliers in the data and mask them out
+5. Re-run the chunk finding code from step 2 above
+
 
 DATA:
 data/masked = raw + masked 50 MHz data using precip info from 920. Also contains mask_x arrays for mask info.
