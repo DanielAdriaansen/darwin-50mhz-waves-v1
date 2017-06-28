@@ -1,4 +1,4 @@
-# 50mhzwaves
+# 50mhzwavesV1
 
 Step 1:
 run mask_50MHz_profiler.ncl
